@@ -62,7 +62,7 @@ TEST_CASES = {
         "rows": 10,
         "cols": 10,
         "obstacle_ratio": 0.3,
-        "seed": 1
+        "seed": 44
     },
     "Maze (20x20 复杂迷宫)": {
         "type": "maze_random",
@@ -70,7 +70,7 @@ TEST_CASES = {
         "cols": 20,
         "obstacle_ratio": 0.3,
         "max_weight": 1,
-        "seed": 1
+        "seed": 10
     },
     "Maze (20x20 变长边权/泥潭)": {
         "type": "maze_random",
