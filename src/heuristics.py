@@ -83,78 +83,86 @@ def h_manhattan(state, goal_state):
     return distance
 
 
+# 在函数外部定义一个缓存字典，避免每次调用重复生成目标位置字典
+_goal_pos_cache = {}
+
 def h_linear_conflict(state, goal_state):
     """
-    曼哈顿距离 + 线性冲突惩罚（核心创新）。
-
-    线性冲突定义：
-    两个棋子 tj 和 tk 在同一行（或列），且它们的目标位置也在该行（或列），
-    但当前顺序与目标顺序相反。
-
-    每对冲突额外 +2（因为至少需要额外 2 步才能让对方通过）。
-    这是数码问题中最强的可纳入启发函数之一，可大幅削减搜索树。
+    高度优化的 曼哈顿距离 + 线性冲突 启发函数。
+    保证 Admissibility（不超估），并将耗时压缩至最低。
     """
-    manhattan = h_manhattan(state, goal_state)
-    dimension = int(round(len(state) ** 0.5))
+    # 1. 从缓存中获取/计算目标位置 (避免千万次冗余计算)
+    if goal_state not in _goal_pos_cache:
+        dimension = int(round(len(goal_state) ** 0.5))
+        pos_dict = {}
+        for idx, val in enumerate(goal_state):
+            if val != 0:
+                pos_dict[val] = (idx // dimension, idx % dimension)
+        _goal_pos_cache[goal_state] = (dimension, pos_dict)
 
-    # 预先建立目标位置查找表
-    goal_pos = {}
-    for idx, val in enumerate(goal_state):
-        if val != 0:
-            goal_pos[val] = (idx // dimension, idx % dimension)
+    dimension, goal_pos = _goal_pos_cache[goal_state]
 
-    conflict = 0
+    manhattan = 0
+    # 预分配行列收集器
+    row_tiles = [[] for _ in range(dimension)]
+    col_tiles = [[] for _ in range(dimension)]
 
-    # ---- 检查每一行的线性冲突 ----------------------------------------
-    for row in range(dimension):
-        row_tiles = []
-        for col in range(dimension):
-            idx = row * dimension + col
-            val = state[idx]
-            if val == 0:
-                continue
-            if val not in goal_pos:
-                continue
-            g_row, g_col = goal_pos[val]
-            if g_row == row:  # 目标也在本行
-                row_tiles.append((val, col, g_col))
+    # 2. 一次遍历，同时搞定曼哈顿距离和冲突前置收集
+    for idx, val in enumerate(state):
+        if val == 0:
+            continue
 
-        # 两两比较：当前列顺序与目标列顺序是否相反
-        for i in range(len(row_tiles)):
-            for j in range(i + 1, len(row_tiles)):
-                val_i, cur_col_i, goal_col_i = row_tiles[i]
-                val_j, cur_col_j, goal_col_j = row_tiles[j]
+        cur_row, cur_col = idx // dimension, idx % dimension
+        g_row, g_col = goal_pos[val]
 
-                if cur_col_i < cur_col_j and goal_col_i > goal_col_j:
-                    conflict += 2
-                elif cur_col_i > cur_col_j and goal_col_i < goal_col_j:
-                    conflict += 2
+        # 累加曼哈顿距离
+        manhattan += abs(cur_row - g_row) + abs(cur_col - g_col)
 
-    # ---- 检查每一列的线性冲突 ----------------------------------------
-    for col in range(dimension):
-        col_tiles = []
-        for row in range(dimension):
-            idx = row * dimension + col
-            val = state[idx]
-            if val == 0:
-                continue
-            if val not in goal_pos:
-                continue
-            g_row, g_col = goal_pos[val]
-            if g_col == col:
-                col_tiles.append((val, row, g_row))
+        # 如果在目标行/列上，将其目标列/行号收集起来，以便后续判断逆序对
+        if cur_row == g_row:
+            row_tiles[cur_row].append(g_col)
+        if cur_col == g_col:
+            col_tiles[cur_col].append(g_row)
 
-        for i in range(len(col_tiles)):
-            for j in range(i + 1, len(col_tiles)):
-                val_i, cur_row_i, goal_row_i = col_tiles[i]
-                val_j, cur_row_j, goal_row_j = col_tiles[j]
+    conflict_penalty = 0
 
-                if cur_row_i < cur_row_j and goal_row_i > goal_row_j:
-                    conflict += 2
-                elif cur_row_i > cur_row_j and goal_row_i < goal_row_j:
-                    conflict += 2
+    # 3. 严格计算线性冲突惩罚（贪心移除冲突最多的棋子）
+    def count_line_conflicts(line):
+        c = 0
+        while True:
+            inversions = [0] * len(line)
+            # 统计当前存活的每个棋子的冲突次数
+            for i in range(len(line)):
+                if line[i] == -1: continue # -1 代表该棋子已被我们移出该行
+                for j in range(i + 1, len(line)):
+                    if line[j] == -1: continue
+                    # 前面的棋子目标位置 > 后面棋子的目标位置，发生死锁冲突
+                    if line[i] > line[j]:
+                        inversions[i] += 1
+                        inversions[j] += 1
+            
+            # 找到当前参与冲突最多的那个棋子
+            max_inv = max(inversions)
+            if max_inv == 0:
+                break # 没有冲突了，结束
+                
+            # 将冲突最大的棋子移除该行（假装它暂时走开了）
+            max_idx = inversions.index(max_inv)
+            line[max_idx] = -1 
+            # 只要移出一个棋子，就必须付出额外的 2 步代价（进出各一步）
+            c += 2
+        return c
 
-    return manhattan + conflict
+    # 4. 执行冲突判定
+    for row in row_tiles:
+        if len(row) > 1: # 只有两个以上的棋子在同一行才可能冲突
+            conflict_penalty += count_line_conflicts(row)
+
+    for col in col_tiles:
+        if len(col) > 1:
+            conflict_penalty += count_line_conflicts(col)
+
+    return manhattan + conflict_penalty
 
 
 # ====================================================================== #
