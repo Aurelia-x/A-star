@@ -39,14 +39,14 @@ TEST_CASES = {
     },
     "15-Puzzle (中等)": {
         "type": "puzzle",
-        "start": (1, 0, 2, 4, 5, 7, 3, 8, 9, 6, 10, 12, 13, 14, 11, 15),
+        # 这是一个需要较多步数才能解开的困难状态
+        "start": (1, 7, 2, 4, 9, 3, 15, 14, 6, 11, 0, 8, 13, 12, 5, 10),
         "goal":  (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0),
         "dim": 4
     },
-    "15-Puzzle (困难)": {
+        "15-Puzzle (困难)": {
         "type": "puzzle",
-        # 这是一个需要较多步数才能解开的困难状态
-        "start": (2, 3, 4, 8, 1, 6, 0, 12, 5, 10, 7, 11, 9, 13, 14, 15),
+        "start": (15, 2, 3, 14, 1, 13, 7, 12, 6, 4, 11, 9, 5, 8, 10, 0),
         "goal":  (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0),
         "dim": 4
     },
@@ -62,7 +62,7 @@ TEST_CASES = {
         "rows": 10,
         "cols": 10,
         "obstacle_ratio": 0.3,
-        "seed": 44
+        "seed": 45
     },
     "Maze (20x20 复杂迷宫)": {
         "type": "maze_random",
@@ -179,8 +179,13 @@ def run_benchmark():
         for algo_name, algo_func, heuristic, uses_heuristic, weight in algorithms_config:
                  
             # 20x20 复杂迷宫下，IDA* 会因为树搜索无全局记忆而导致天文数字般的重复扩展，直接跳过
-            if case_name == "Maze (20x20 复杂迷宫)" and algo_name == "IDA* (迷宫曼哈顿)":
+            if (case_name == "Maze (20x20 复杂迷宫)" or case_name == "Maze (20x20 变长边权/泥潭)") and algo_name == "IDA* (迷宫曼哈顿)":
                  print(f"{pad_string(algo_name, 28)} | {'SKIPPED':<7} | Tree Search takes too long on large open grids.")
+                 continue
+            
+            # 困难模式下，BFS 和 Dijkstra 会因为状态空间爆炸而导致超时，直接跳过
+            if case_name == "15-Puzzle (困难)" and (algo_name == "BFS (盲搜)" or algo_name == "Dijkstra (代价搜)" or algo_name == "A* (错位棋子数)"):
+                 print(f"{pad_string(algo_name, 28)} | {'SKIPPED':<7} | Time Limit Exceeded.")
                  continue
                  
             # 处理字符串以便动态显示
