@@ -184,7 +184,12 @@ def run_benchmark():
                  continue
             
             # 困难模式下，BFS 和 Dijkstra 会因为状态空间爆炸而导致超时，直接跳过
-            if case_name == "15-Puzzle (困难)" and (algo_name == "BFS (盲搜)" or algo_name == "Dijkstra (代价搜)" or algo_name == "A* (错位棋子数)"):
+            if case_name == "15-Puzzle (困难)"  and (algo_name == "BFS (盲搜)" or algo_name == "Dijkstra (代价搜)" or algo_name == "A* (错位棋子数)"):
+                 print(f"{pad_string(algo_name, 28)} | {'SKIPPED':<7} | Time Limit Exceeded.")
+                 continue
+            
+            # 中等难度模式下，BFS 和 Dijkstra 会因为状态空间爆炸而导致超时，直接跳过
+            if case_name == "15-Puzzle (中等)"  and (algo_name == "BFS (盲搜)" or algo_name == "Dijkstra (代价搜)"):
                  print(f"{pad_string(algo_name, 28)} | {'SKIPPED':<7} | Time Limit Exceeded.")
                  continue
                  
