@@ -59,7 +59,15 @@ def print_separator(char="-", width=72):
 
 
 def clear_screen():
-    os.system("cls" if os.name == "nt" else "clear")
+    """跨平台清屏：优先使用 ANSI 转义序列，回退到 os.system"""
+    # ANSI 转义序列：大多数现代终端都支持
+    # \033[2J 清屏  \033[H 光标归位
+    if sys.stdout.isatty():
+        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.flush()
+    else:
+        # 非终端环境回退到 os.system
+        os.system("cls" if os.name == "nt" else "clear")
 
 
 def show_screen_title(title, step=None):
