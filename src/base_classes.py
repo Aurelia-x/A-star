@@ -3,7 +3,7 @@ class Node:
     搜索树中的节点类，用于封装状态及其在搜索过程中的代价值。
     """
     def __init__(self, state, parent=None, g=0, h=0, action=None):
-        self.state = state      # 当前状态数据 (建议使用可哈希的类型，如 tuple)
+        self.state = state      # 当前状态数据
         self.parent = parent    # 父节点，用于最终回溯路径
         self.g = g              # 从起点到当前节点的实际代价
         self.h = h              # 启发函数估算代价
@@ -57,4 +57,4 @@ class BaseProblem:
         判断问题是否有解，用于在搜索前进行快速拦截。
         返回: bool
         """
-        return True # 默认返回 True，子类可根据需要重写
+        return True

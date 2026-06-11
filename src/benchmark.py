@@ -125,6 +125,11 @@ def run_benchmark():
     """
     性能跑批脚本。
     遍历不同的算法、启发函数，并将测试结果导出为 CSV 报表。
+    核心流程：
+    1. 按场景遍历 TEST_CASES（8数码、15数码、迷宫）
+    2. 每个场景下依次调用 BFS、Dijkstra、A* 变体、IDA*
+    3. 收集耗时、扩展节点数、内存峰值、步数、总代价等指标
+    4. 最终写入 report_data.csv
     """
     print("-" * 60)
     print("\n[SYSTEM] Starting Algorithm Performance Benchmark")
@@ -132,7 +137,9 @@ def run_benchmark():
     
     results = []
 
+    # 遍历每个测试场景
     for case_name, case_data in TEST_CASES.items():
+        # ---- 根据场景类型构建问题实例 ----
         if case_data["type"] == "puzzle":
             problem = PuzzleProblem(case_data["dim"], case_data["start"], case_data["goal"])
             algorithms_config = [
@@ -178,6 +185,7 @@ def run_benchmark():
         print_table_header(case_name)
         for algo_name, algo_func, heuristic, uses_heuristic, weight in algorithms_config:
                  
+            # ---- 跳过预判：某些算法+场景组合会导致超时或不合理的性能表现 ----
             # 20x20 复杂迷宫下，IDA* 会因为树搜索无全局记忆而导致天文数字般的重复扩展，直接跳过
             if (case_name == "Maze (20x20 复杂迷宫)" or case_name == "Maze (20x20 变长边权/泥潭)") and algo_name == "IDA* (迷宫曼哈顿)":
                  print(f"{pad_string(algo_name, 28)} | {'SKIPPED':<7} | Tree Search takes too long on large open grids.")
@@ -201,7 +209,11 @@ def run_benchmark():
             print(f"{pad_string(display_name, 28)} | ", end="", flush=True)
             
             try:
-                # 调用统一接口
+                # ---- 调用统一接口执行搜索 ----
+                # 根据算法类型选择正确的参数签名：
+                # - IDA* 不接受 weight 参数
+                # - A* 需要 heuristic + weight
+                # - BFS / Dijkstra 不需要任何额外参数
                 if uses_heuristic:
                     if algo_func == ida_star:
                         # IDA* 签名没有 weight 参数

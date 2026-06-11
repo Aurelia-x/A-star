@@ -30,13 +30,19 @@ class PuzzleProblem(BaseProblem):
         return state == self.goal
 
     def get_successors(self, state):
+        """扩展当前状态的所有合法后继状态
+        返回 [(动作名, 新状态, 边权值), ...]
+        每一步的代价固定为 1（均一代价）
+        """
         successors = []
         d = self.dimension
 
+        # 定位空格（0）的坐标
         zero_idx = state.index(0)
         zero_row = zero_idx // d
         zero_col = zero_idx % d
 
+        # 四个方向的移动尝试
         directions = [
             ("Up",    -1,  0),
             ("Down",   1,  0),
@@ -62,6 +68,10 @@ class PuzzleProblem(BaseProblem):
         return successors
 
     def is_solvable(self):
+        """判断数码问题是否有解（利用逆序数的奇偶性）
+        奇数维度（8数码）：初始与目标逆序数奇偶性必须一致
+        偶数维度（15数码）：逆序数 + 空格距底边距离 的奇偶性必须一致
+        """
         def get_inversions(state):
             flat = [x for x in state if x != 0]
             inversions = 0
@@ -152,6 +162,9 @@ class MazeProblem(BaseProblem):
         return state == self.goal_pos
 
     def get_successors(self, state):
+        """扩展迷宫的合法移动
+        支持变长边权：空地(0)代价=1，泥潭(>=2)代价=格子的值
+        """
         successors = []
         row, col = state
 
@@ -178,13 +191,14 @@ class MazeProblem(BaseProblem):
         return successors
 
     def is_solvable(self):
+        """用轻量级 BFS 检查起点到终点的连通性
+        不做路径记录，只判断可达性
+        """
         r0, c0 = self.start_pos
         rg, cg = self.goal_pos
-        # 起点终点必须都在路上（0）
+        # 起点或终点在墙上 → 直接不可达
         if self.grid[r0][c0] == 1 or self.grid[rg][cg] == 1:
             return False
-            
-        # 使用快速的内部 BFS 检查连通性
         # 这是一个极简版的广度优先搜索，它的唯一目的是回答“起点能不能连通到终点？”
         # 相比 algorithms.py 中的完整版，它做了极大的“减法”：
         # 1. 零对象创建：直接使用坐标元组 (row, col)，不实例化沉重的 Node 对象

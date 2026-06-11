@@ -79,7 +79,7 @@ def show_screen_title(title, step=None):
         log("SYSTEM", title)
     print_separator("=")
 
-
+# 选择合法性检查
 def prompt_choice(prompt, options):
     while True:
         choice = input(prompt).strip()
@@ -87,7 +87,7 @@ def prompt_choice(prompt, options):
             return choice
         log("WARNING", f"无效输入：{choice}，请重新输入。")
 
-
+# 整数输入合法性检查
 def prompt_int(prompt, min_value=None, max_value=None, allow_empty=False, default=None, allow_back=False):
     while True:
         raw = input(prompt).strip()
@@ -110,7 +110,7 @@ def prompt_int(prompt, min_value=None, max_value=None, allow_empty=False, defaul
             continue
         return value
 
-
+# 浮点数输入合法性检查
 def prompt_float(prompt, min_value=None, max_value=None, allow_empty=False, default=None, allow_back=False):
     while True:
         raw = input(prompt).strip()
@@ -133,7 +133,7 @@ def prompt_float(prompt, min_value=None, max_value=None, allow_empty=False, defa
             continue
         return value
 
-
+# 两个整数输入合法性检查
 def prompt_pair(prompt, min_first=None, max_first=None, min_second=None, max_second=None,
                 allow_empty=False, default=None, allow_back=False):
     while True:
@@ -170,7 +170,7 @@ def prompt_pair(prompt, min_first=None, max_first=None, min_second=None, max_sec
 
         return first, second
 
-
+# 拼图状态解析合法性检查
 def parse_puzzle_state(raw_text, dimension):
     tokens = raw_text.replace(",", " ").split()
     expected_len = dimension * dimension
@@ -196,11 +196,11 @@ def print_puzzle_board(state, dimension):
         print(line)
         print("+" + "---+" * dimension)
 
-
+# 格式化位置为 1 基础坐标
 def format_position_1_based(pos):
     return f"({pos[0] + 1}, {pos[1] + 1})"
 
-
+# 渲染迷宫
 def render_maze(problem, path_prefix=None, current_state=None):
     path_prefix = path_prefix or []
     path_set = set(path_prefix)
@@ -228,7 +228,7 @@ def render_maze(problem, path_prefix=None, current_state=None):
             row_cells.append(f"{cell:>2}")
         print(" ".join(row_cells))
 
-
+# 渲染可编辑拼图网格
 def render_editable_puzzle_grid(grid):
     dimension = len(grid)
     header = "    " + " ".join(f"{col + 1:>3}" for col in range(dimension))
@@ -243,7 +243,7 @@ def render_editable_puzzle_grid(grid):
         print(line)
         print("   +" + "---+" * dimension)
 
-
+# 渲染可编辑迷宫网格
 def render_editable_maze_grid(grid):
     cols = len(grid[0])
     header = "    " + " ".join(f"{col + 1:>3}" for col in range(cols))
@@ -260,7 +260,7 @@ def render_editable_maze_grid(grid):
         print(line)
         print("   +" + "---+" * cols)
 
-
+# 构建拼图状态
 def build_puzzle_state_by_coordinates(dimension, title):
     expected_values = set(range(dimension * dimension))
     grid = [[None for _ in range(dimension)] for _ in range(dimension)]
@@ -344,7 +344,7 @@ def build_puzzle_state_by_coordinates(dimension, title):
 
         grid[row][col] = value
 
-
+# 构建迷宫网格
 def build_maze_grid_by_coordinates(rows, cols):
     grid = [[0 for _ in range(cols)] for _ in range(rows)]
 
@@ -390,7 +390,7 @@ def build_maze_grid_by_coordinates(rows, cols):
 
         grid[row][col] = value
 
-
+# 选择拼图问题
 def choose_puzzle_problem(dimension):
     while True:
         show_screen_title(f"{'8' if dimension == 3 else '15'} 数码配置", step=2)
@@ -443,7 +443,7 @@ def choose_puzzle_problem(dimension):
                     continue
                 return PuzzleProblem(dimension, start, goal)
 
-
+# 读取迷宫网格
 def read_maze_grid(rows, cols):
     log("INPUT", "请逐行输入迷宫。0 表示空地，1 表示墙，2 及以上表示权重。")
     log("INPUT", "输入 q 返回上一步。")
@@ -466,7 +466,7 @@ def read_maze_grid(rows, cols):
             break
     return grid
 
-
+# 选择迷宫问题
 def choose_maze_problem():
     while True:
         show_screen_title("迷宫配置", step=2)
@@ -583,7 +583,7 @@ def choose_maze_problem():
                 seed=seed,
             )
 
-
+# 选择问题类型
 def choose_problem_type():
     show_screen_title("启发式搜索算法演示系统", step=1)
     print("1. 8 数码问题")
@@ -592,7 +592,7 @@ def choose_problem_type():
     print("0. 退出程序")
     return prompt_choice("请选择问题类型 (0/1/2/3): ", {"0", "1", "2", "3"})
 
-
+# 配置问题
 def configure_problem(problem_choice):
     if problem_choice == "1":
         return "puzzle", choose_puzzle_problem(3)
@@ -600,8 +600,11 @@ def configure_problem(problem_choice):
         return "puzzle", choose_puzzle_problem(4)
     return "maze", choose_maze_problem()
 
-
+# 选择搜索算法
 def choose_algorithm(problem_type, problem):
+    """选择搜索算法及其启发式函数配置
+    返回: (算法名, 算法函数, 启发式函数名, 启发式函数, 权重) 或 BACK
+    """
     while True:
         show_screen_title("算法选择", step=3)
         print("1. BFS")
@@ -615,6 +618,7 @@ def choose_algorithm(problem_type, problem):
             return BACK
         algo_name, algo_func, needs_heuristic, weight = ALGORITHM_OPTIONS[algo_choice]
 
+        # ---- 迷宫 IDA* 大尺寸警告 ----
         if problem_type == "maze" and algo_choice == "5" and (problem.rows > 8 or problem.cols > 8):
             show_screen_title("算法选择", step=3)
             log(
@@ -630,6 +634,7 @@ def choose_algorithm(problem_type, problem):
         heuristic_name = None
         heuristic_func = None
         if needs_heuristic:
+            # ---- 迷宫：固定使用曼哈顿距离 ----
             if problem_type == "maze":
                 heuristic_name = "迷宫曼哈顿距离"
                 heuristic_func = h_maze_manhattan
@@ -654,7 +659,7 @@ def choose_algorithm(problem_type, problem):
 
         return algo_name, algo_func, heuristic_name, heuristic_func, weight
 
-
+# 打印问题摘要
 def print_problem_summary(problem_type, problem):
     show_screen_title("问题配置确认", step=3)
     if problem_type == "puzzle":
@@ -677,15 +682,16 @@ def print_problem_summary(problem_type, problem):
     print("0. 返回上一步")
     return prompt_choice("请输入选项 (0/1): ", {"0", "1"})
 
-
+# 运行选择的搜索算法
 def run_selected_algorithm(problem, algo_func, heuristic_func, weight):
+    """根据是否有启发函数，调用不同的算法签名"""
     if heuristic_func is None:
-        return algo_func(problem)
+        return algo_func(problem)  # BFS / Dijkstra
     if algo_func == ida_star:
-        return algo_func(problem, heuristic_func)
-    return algo_func(problem, heuristic_func, weight)
+        return algo_func(problem, heuristic_func)  # IDA* 无 weight
+    return algo_func(problem, heuristic_func, weight)  # A* / Weighted A*
 
-
+# 打印搜索结果摘要
 def print_result_summary(algo_name, heuristic_name, result):
     show_screen_title("求解结果", step=5)
     path_actions, path_states, expanded, max_open, time_cost, total_cost = result
@@ -699,7 +705,7 @@ def print_result_summary(algo_name, heuristic_name, result):
     else:
         log("RESULT", "动作序列: 空")
 
-
+# 显示数码问题状态
 def show_puzzle_problem_states(problem):
     show_screen_title("问题状态查看", step=5)
     log("INFO", "初始状态:")
@@ -708,8 +714,9 @@ def show_puzzle_problem_states(problem):
     print_puzzle_board(problem.get_goal_state(), problem.dimension)
     input("查看结束，按回车返回结果页...")
 
-
+# 回放数码问题求解过程
 def replay_puzzle_solution(problem, path_actions, path_states):
+    """逐帧回放数码问题的求解过程"""
     for step_idx, state in enumerate(path_states):
         show_screen_title("数码问题回放", step=6)
         if step_idx == 0:
@@ -720,7 +727,7 @@ def replay_puzzle_solution(problem, path_actions, path_states):
         time.sleep(0.4)
     input("回放结束，按回车返回结果页...")
 
-
+# 回放迷宫问题求解过程
 def replay_maze_solution(problem, path_actions, path_states):
     for step_idx, state in enumerate(path_states):
         show_screen_title("迷宫问题回放", step=6)
@@ -735,22 +742,29 @@ def replay_maze_solution(problem, path_actions, path_states):
 
 
 def main():
+    """
+    主入口：交互式启发式搜索演示系统
+    用户流程：选择问题类型 → 配置初始/目标状态 → 选择算法/启发函数 → 执行 → 回放结果
+    支持返回上一步（输入 0/q），嵌套循环实现多级菜单回溯
+    """
     while True:
         problem_choice = choose_problem_type()
         if problem_choice == "0":
             return
 
+        # ---- 第一层循环：问题配置 ----
         while True:
             problem_type, problem = configure_problem(problem_choice)
             if problem == BACK:
-                break
+                break  # 返回主菜单
 
             summary_choice = print_problem_summary(problem_type, problem)
             if summary_choice == "0":
-                continue
+                continue  # 返回重新配置问题
             if not problem.is_solvable():
-                continue
+                continue  # 无解，返回重新配置
 
+            # ---- 第二层循环：算法选择与执行 ----
             while True:
                 algo_config = choose_algorithm(problem_type, problem)
                 if algo_config == BACK:
@@ -759,10 +773,12 @@ def main():
 
                 show_screen_title("算法执行中", step=5)
                 log("RUNNING", f"{algo_name} 开始执行...")
+                # ---- 执行选定的搜索算法 ----
                 result = run_selected_algorithm(problem, algo_func, heuristic_func, weight)
                 path_actions, path_states, expanded, max_open, time_cost, total_cost = result
 
                 if not path_states:
+                    # 搜索失败：未找到可行路径
                     show_screen_title("求解结果", step=5)
                     log("ERROR", "算法执行结束，但未找到可行路径。")
                     log("RESULT", f"Time: {time_cost:.4f}s | Exp: {expanded} | Open: {max_open} | Steps: 0 | Cost: {total_cost}")
@@ -778,6 +794,7 @@ def main():
                     return
 
                 while True:
+                    # ---- 结果展示与交互（回放/返回/退出） ----
                     print_result_summary(algo_name, heuristic_name, result)
                     print("1. 回放求解过程")
                     if problem_type == "puzzle":
